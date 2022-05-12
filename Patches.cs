@@ -74,6 +74,20 @@ namespace ItemRequiresSkillLevel
         }
 
         [HarmonyPatch]
+        class PlayerShit
+        {
+            [HarmonyPatch(typeof(Player), nameof(Player.CanConsumeItem))]
+            [HarmonyPostfix]
+            internal static void UpdateRecipe_Post(ItemDrop.ItemData item, ref bool __result)
+            {
+                SkillRequirement requirement = Requirements.list.FirstOrDefault(x => item.m_dropPrefab.name.Contains(x.PrefabName));
+                if (requirement is null) return;
+
+                __result =  IsAble(requirement);
+            }
+        }
+
+        [HarmonyPatch]
         class Spawn
         {
             static bool hasSpawned = false;             
