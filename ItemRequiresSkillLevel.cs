@@ -14,17 +14,20 @@ namespace ItemRequiresSkillLevel
     [HarmonyPatch]
     public class ItemRequiresSkillLevel : BaseUnityPlugin
     {
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.3";
         public const string PluginGUID = "Detalhes.ItemRequiresSkillLevel";
         static ServerSync.ConfigSync configSync = new ServerSync.ConfigSync(PluginGUID) { DisplayName = PluginGUID, CurrentVersion = Version, MinimumRequiredVersion = Version };
 
         public static CustomSyncedValue<Dictionary<string, string>> YamlData = new CustomSyncedValue<Dictionary<string, string>>(configSync, "ItemRequiresSkillLevel yaml");
         internal static ConfigEntry<bool>? serverSyncLock;
+        internal static ConfigEntry<bool> GenerateListWithAllEquipableItems;
+        internal static ConfigEntry<bool> BlockCraft;
 
         Harmony _harmony = new Harmony(PluginGUID);
 
         internal static string ConfigFileName = PluginGUID + ".yml";
         public static string ConfigPath = Paths.ConfigPath + Path.DirectorySeparatorChar + ConfigFileName;
+        public static string AllItemsConfigPath = Paths.ConfigPath + Path.DirectorySeparatorChar + PluginGUID + "ALLITEMS" + ".yml";
 
         private void Awake()
         {
@@ -36,6 +39,9 @@ namespace ItemRequiresSkillLevel
             SetupWatcher();
 
             serverSyncLock = config("General", "Lock Configuration", true, "Lock Configuration");
+            GenerateListWithAllEquipableItems = config("General", "GenerateListWithAllEquipableItems", false, "GenerateListWithAllEquipableItems");
+            BlockCraft = config("General", "BlockCraft", true, "BlockCraft");
+
             configSync.AddLockingConfigEntry(serverSyncLock);
         }
 

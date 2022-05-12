@@ -58,6 +58,43 @@ namespace ItemRequiresSkillLevel
             }
         }
 
+        public static void GenerateListWithAllEquipments()
+        {
+            if (!File.Exists(ItemRequiresSkillLevel.AllItemsConfigPath))
+            {
+                List<SkillRequirement> initials = new();
+
+                foreach (var item in ObjectDB.instance.m_items)
+                {
+                    ItemDrop itemDrop = item.GetComponent<ItemDrop>();
+                    if (!itemDrop) continue;
+
+                    if (itemDrop.m_itemData is null) continue;
+
+                    if (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Tool || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.TwoHandedWeapon || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Bow) || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Helmet || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Chest || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Legs)) || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shoulder || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Torch) || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Utility)
+                    {
+                        initials.Add(new SkillRequirement
+                        {
+                            PrefabName = item.name,
+                            Skill = "Level",
+                            Level = 10
+                        });
+                    }
+                }    
+
+                var serializer = new SerializerBuilder()
+                .WithNamingConvention(PascalCaseNamingConvention.Instance)
+                .Build();
+
+                var yaml = serializer.Serialize(initials);
+
+                using StreamWriter streamWriter = File.CreateText(ItemRequiresSkillLevel.AllItemsConfigPath);
+                streamWriter.Write(new StringBuilder()
+                        .AppendLine(yaml));
+                streamWriter.Close();
+            }
+        }
+
         public static void Load()
         {
             list.Clear();
