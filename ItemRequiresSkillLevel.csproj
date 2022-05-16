@@ -91,6 +91,7 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EpicMMOApi.cs" />
     <Compile Include="ItemRequiresSkillLevel.cs" />
     <Compile Include="Patches.cs" />
     <Compile Include="SkillRequirement.cs" />

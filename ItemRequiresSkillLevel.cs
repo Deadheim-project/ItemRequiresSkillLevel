@@ -14,14 +14,16 @@ namespace ItemRequiresSkillLevel
     [HarmonyPatch]
     public class ItemRequiresSkillLevel : BaseUnityPlugin
     {
-        public const string Version = "1.0.4";
+        public const string Version = "1.0.6";
         public const string PluginGUID = "Detalhes.ItemRequiresSkillLevel";
-        static ServerSync.ConfigSync configSync = new ServerSync.ConfigSync(PluginGUID) { DisplayName = PluginGUID, CurrentVersion = Version, MinimumRequiredVersion = Version };
+        static ConfigSync configSync = new ConfigSync(PluginGUID) { DisplayName = PluginGUID, CurrentVersion = Version, MinimumRequiredVersion = Version };
 
         public static CustomSyncedValue<Dictionary<string, string>> YamlData = new CustomSyncedValue<Dictionary<string, string>>(configSync, "ItemRequiresSkillLevel yaml");
         internal static ConfigEntry<bool>? serverSyncLock;
         internal static ConfigEntry<bool> GenerateListWithAllEquipableItems;
-        internal static ConfigEntry<bool> BlockCraft;
+        internal static ConfigEntry<string> RequiresText;
+        internal static ConfigEntry<string> cantEquipColor;
+        internal static ConfigEntry<string> canEquipColor;
 
         Harmony _harmony = new Harmony(PluginGUID);
 
@@ -31,16 +33,19 @@ namespace ItemRequiresSkillLevel
 
         private void Awake()
         {
-            Requirements.Init();
+            RequirementService.Init();
             _harmony.PatchAll();
-            YamlData.ValueChanged += Requirements.Load;
+            YamlData.ValueChanged += RequirementService.Load;
             var val = (new string[] { ConfigPath }.ToDictionary(f => f, File.ReadAllText));
             YamlData.AssignLocalValue(val);
             SetupWatcher();
 
             serverSyncLock = config("General", "Lock Configuration", true, "Lock Configuration");
             GenerateListWithAllEquipableItems = config("General", "GenerateListWithAllEquipableItems", false, "GenerateListWithAllEquipableItems");
-            BlockCraft = config("General", "BlockCraft", true, "BlockCraft");
+            canEquipColor = config("General", "canEquipColor", "green", "canEquipColor");
+            cantEquipColor = config("General", "cantEquipColor", "red", "cantEquipColor");
+            GenerateListWithAllEquipableItems = config("General", "GenerateListWithAllEquipableItems", false, "GenerateListWithAllEquipableItems");
+            RequiresText = config("General", "RequiresText", "\nRequires <color={0}>{1} {2}</color>", "RequiresText");
 
             configSync.AddLockingConfigEntry(serverSyncLock);
         }

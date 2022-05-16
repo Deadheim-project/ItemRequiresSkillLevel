@@ -10,14 +10,39 @@ namespace ItemRequiresSkillLevel
 {
     public class SkillRequirement
     {
+        [YamlMember]
         public string PrefabName { get; set; }
-        public string Skill { get; set; }
-        public int Level { get; set; }
 
-        public static List<SkillRequirement> Parse(string yaml) => new DeserializerBuilder().IgnoreFields().Build().Deserialize<List<SkillRequirement>>(yaml);
+        [YamlIgnore]
+        public int StableHashCode { get; set; }
+
+        [YamlMember]
+        public List<Requirement> Requirements { get; set; }
+
+        public static List<SkillRequirement> Parse(string yaml)
+        {
+            List<SkillRequirement> list = ParseString(yaml);
+            foreach (SkillRequirement skillRequirement in list)
+            {
+                skillRequirement.StableHashCode = skillRequirement.PrefabName.GetStableHashCode();
+            }
+
+            return list;
+        }
+
+        private static List<SkillRequirement> ParseString(string yaml) => new DeserializerBuilder().IgnoreFields().Build().Deserialize<List<SkillRequirement>>(yaml);
     }
 
-    public class Requirements
+    public class Requirement
+    {
+        public string Skill { get; set; }
+        public int Level { get; set; }
+        public bool BlockCraft { get; set; }
+        public bool BlockEquip { get; set; }
+        public bool EpicMMO { get; set; }
+    }
+
+    public class RequirementService
     {
         public static List<SkillRequirement> list = new();
 
@@ -29,20 +54,66 @@ namespace ItemRequiresSkillLevel
                 initials.Add(new SkillRequirement
                 {
                     PrefabName = "ArmorBronzeLegs",
-                    Skill = "Blocking",
-                    Level = 10
+                    Requirements = new List<Requirement>() {
+                        new Requirement()
+                        {
+                            Skill = "Blocking",
+                            Level = 10,
+                            BlockCraft = false,
+                            BlockEquip = true,
+                            EpicMMO = false,
+                        },
+                        new Requirement()
+                        {
+                            Skill = "Swim",
+                            Level = 10,
+                            BlockCraft = true,
+                            BlockEquip = true,
+                        }
+                    }
+
                 });
                 initials.Add(new SkillRequirement
                 {
                     PrefabName = "ArmorBronzeChest",
-                    Skill = "Blocking",
-                    Level = 10
+                    Requirements = new List<Requirement>() {
+                        new Requirement()
+                        {
+                            Skill = "Blocking",
+                            Level = 10,
+                            BlockCraft = false,
+                            BlockEquip = true,
+                        },
+                        new Requirement()
+                        {
+                            Skill = "Swim",
+                            Level = 10,
+                            BlockCraft = true,
+                            BlockEquip = true,
+                        }
+                    }
+
                 });
                 initials.Add(new SkillRequirement
                 {
                     PrefabName = "HelmetBronze",
-                    Skill = "Blocking",
-                    Level = 10
+                    Requirements = new List<Requirement>() {
+                        new Requirement()
+                        {
+                            Skill = "Blocking",
+                            Level = 10,
+                            BlockCraft = false,
+                            BlockEquip = true,
+                        },
+                        new Requirement()
+                        {
+                            Skill = "Swim",
+                            Level = 10,
+                            BlockCraft = true,
+                            BlockEquip = true,
+                        }
+                    }
+
                 });
 
                 var serializer = new SerializerBuilder()
@@ -71,16 +142,23 @@ namespace ItemRequiresSkillLevel
 
                     if (itemDrop.m_itemData is null) continue;
 
-                    if (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Tool || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.TwoHandedWeapon || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Bow) || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Helmet || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Chest || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Legs)) || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shoulder || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Torch) || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Utility)
+                    if (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Tool || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.TwoHandedWeapon || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Bow) || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Helmet || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Chest || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Legs)) || (itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shoulder || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Torch) || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Utility || itemDrop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Consumable)
                     {
                         initials.Add(new SkillRequirement
                         {
                             PrefabName = item.name,
-                            Skill = "Level",
-                            Level = 10
+                            Requirements = new List<Requirement>() {
+                            new Requirement()
+                            {
+                                Skill = "Blocking",
+                                Level = 10,
+                                BlockCraft = false,
+                                BlockEquip = true                                
+                            }
+                            }
                         });
                     }
-                }    
+                }
 
                 var serializer = new SerializerBuilder()
                 .WithNamingConvention(PascalCaseNamingConvention.Instance)
