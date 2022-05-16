@@ -103,14 +103,6 @@ namespace ItemRequiresSkillLevel
 
         public static bool IsAble(Requirement requirement)
         {
-            if (ValheimLevelSystemList.Contains(requirement.Skill))
-            {
-                int level = GetSkillLevelVLS(requirement.Skill);
-                if (level == 0) return true;
-
-                if (level < requirement.Level) return false;
-            }
-
             if (requirement.EpicMMO)
             {
                 int level = 0;
@@ -123,6 +115,15 @@ namespace ItemRequiresSkillLevel
 
                 if (level < requirement.Level) return false;
             }
+
+            if (ValheimLevelSystemList.Contains(requirement.Skill))
+            {
+                int level = GetSkillLevelVLS(requirement.Skill);
+                if (level == 0) return true;
+
+                if (level < requirement.Level) return false;
+            }
+
 
             else if (Player.m_localPlayer.GetSkills().GetSkill((Skills.SkillType)Enum.Parse(typeof(Skills.SkillType), requirement.Skill)).m_level < requirement.Level) return false;
 
