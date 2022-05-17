@@ -16,7 +16,7 @@ namespace ItemRequiresSkillLevel
             [HarmonyPatch(typeof(ItemDrop.ItemData), nameof(ItemDrop.ItemData.GetTooltip), new Type[] { })]
             [HarmonyPostfix]
             private static void GetToolTip(ItemDrop.ItemData __instance, ref string __result)
-                {
+            {
                 SkillRequirement requirement = RequirementService.list.FirstOrDefault(x => __instance.m_dropPrefab.name.GetStableHashCode() == x.StableHashCode);
                 if (requirement is null) return;
                 __result += GetTextEquip(requirement);
@@ -29,7 +29,8 @@ namespace ItemRequiresSkillLevel
                 SkillRequirement requirement = RequirementService.list.FirstOrDefault(x => __instance.m_dropPrefab.name.GetStableHashCode() == x.StableHashCode);
                 if (requirement is null) return;
 
-                __result = requirement.Requirements.Any(x => !IsAble(x));
+                bool result = requirement.Requirements.Where(x => x.BlockEquip).ToList().Any(x => !IsAble(x)) ? false : true;
+                __result = result;
             }
         }
 
@@ -56,17 +57,13 @@ namespace ItemRequiresSkillLevel
 
                 string craftText = GetTextCraft(requirement);
                 __instance.m_recipeDecription.text += craftText;
-                if (!String.IsNullOrEmpty(craftText))
+
+                bool result = requirement.Requirements.Where(x => x.BlockCraft).ToList().Any(x => !IsAble(x)) ? true : false;
+                if (result)
                 {
-                    __instance.m_craftButton.enabled = false;
                     __instance.m_craftButton.interactable = false;
                 }
-                else
-                {
-                    __instance.m_craftButton.enabled = true;
-                    __instance.m_craftButton.interactable = true;
-                }
-            }
+             }
         }
 
         [HarmonyPatch]
@@ -74,12 +71,12 @@ namespace ItemRequiresSkillLevel
         {
             [HarmonyPatch(typeof(Player), nameof(Player.CanConsumeItem))]
             [HarmonyPostfix]
-            internal static void UpdateRecipe_Post(ItemDrop.ItemData item, ref bool __result)
+            internal static void CanConsumeItem(ItemDrop.ItemData item, ref bool __result)
             {
                 SkillRequirement requirement = RequirementService.list.FirstOrDefault(x => item.m_dropPrefab.name.GetStableHashCode() == x.StableHashCode);
                 if (requirement is null) return;
 
-                __result = requirement.Requirements.Any(x => !IsAble(x));
+                __result = requirement.Requirements.Where(x => x.BlockEquip).ToList().Any(x => !IsAble(x)) ? false : true;
             }
         }
 
@@ -103,13 +100,14 @@ namespace ItemRequiresSkillLevel
 
         public static bool IsAble(Requirement requirement)
         {
+
             if (requirement.EpicMMO)
             {
                 int level = 0;
-                
+
                 if (requirement.Skill == "Level") level = EpicMMOSystem_API.GetLevel();
-                else level = EpicMMOSystem_API.GetAttribute((EpicMMOSystem_API.Attribut)Enum.Parse(typeof(EpicMMOSystem_API.Attribut), requirement.Skill)) ;
-                
+                else level = EpicMMOSystem_API.GetAttribute((EpicMMOSystem_API.Attribut)Enum.Parse(typeof(EpicMMOSystem_API.Attribut), requirement.Skill));
+
 
                 if (level == 0) return true;
 
@@ -124,11 +122,22 @@ namespace ItemRequiresSkillLevel
                 if (level < requirement.Level) return false;
             }
 
+            var skill = Player.m_localPlayer.GetSkills().m_skillData.FirstOrDefault(x => x.Key == FromName(requirement.Skill));
+            if (skill.Value is null)
+            {
+                Skills.SkillType type = (Skills.SkillType)Enum.Parse(typeof(Skills.SkillType), requirement.Skill);
+                skill = Player.m_localPlayer.GetSkills().m_skillData.FirstOrDefault(x => x.Key == type);
+            }
+            if (skill.Value is null) return true;
 
-            else if (Player.m_localPlayer.GetSkills().GetSkill((Skills.SkillType)Enum.Parse(typeof(Skills.SkillType), requirement.Skill)).m_level < requirement.Level) return false;
+
+            if (skill.Value.m_level < requirement.Level) return false;
 
             return true;
         }
+
+        public static Skills.SkillType FromName(string englishName) => (Skills.SkillType)Math.Abs(englishName.GetStableHashCode());
+
 
         public static string GetTextCraft(SkillRequirement requirement)
         {
