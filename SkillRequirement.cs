@@ -25,6 +25,10 @@ namespace ItemRequiresSkillLevel
             foreach (SkillRequirement skillRequirement in list)
             {
                 skillRequirement.StableHashCode = skillRequirement.PrefabName.GetStableHashCode();
+                foreach (var x in skillRequirement.Requirements)
+                {
+                    if (string.IsNullOrEmpty(x.ExhibitionName)) x.ExhibitionName = x.Skill;
+                }
             }
 
             return list;
@@ -40,6 +44,7 @@ namespace ItemRequiresSkillLevel
         public bool BlockCraft { get; set; }
         public bool BlockEquip { get; set; }
         public bool EpicMMO { get; set; }
+        public string ExhibitionName { get; set; }
     }
 
     public class RequirementService

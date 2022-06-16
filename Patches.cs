@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace ItemRequiresSkillLevel
 {
@@ -17,6 +18,8 @@ namespace ItemRequiresSkillLevel
             [HarmonyPostfix]
             private static void GetToolTip(ItemDrop.ItemData __instance, ref string __result)
             {
+                if (__instance.m_dropPrefab is null) return;
+              
                 SkillRequirement requirement = RequirementService.list.FirstOrDefault(x => __instance.m_dropPrefab.name.GetStableHashCode() == x.StableHashCode);
                 if (requirement is null) return;
                 __result += GetTextEquip(requirement);
@@ -26,6 +29,8 @@ namespace ItemRequiresSkillLevel
             [HarmonyPostfix]
             private static void IsEquipable(ItemDrop.ItemData __instance, ref bool __result)
             {
+                if (__instance.m_dropPrefab is null) return;                
+
                 SkillRequirement requirement = RequirementService.list.FirstOrDefault(x => __instance.m_dropPrefab.name.GetStableHashCode() == x.StableHashCode);
                 if (requirement is null) return;
 
@@ -34,14 +39,19 @@ namespace ItemRequiresSkillLevel
             }
         }
 
-        public static int GetSkillLevelVLS(string skill)
+        [HarmonyPatch]
+        class HumanoidPickUp
         {
-            if (Player.m_localPlayer.m_knownTexts.ContainsKey("player" + skill))
+            [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.EquipItem))]
+            [HarmonyPrefix]
+            internal static bool EquipItem(Humanoid __instance, ItemDrop.ItemData item)
             {
-                return Convert.ToInt32(Player.m_localPlayer.m_knownTexts["player" + skill]);
-            }
+                if (!__instance.IsPlayer()) return true;
 
-            return 0;
+                 if (item.IsEquipable()) return true;
+
+                return false;
+            }
         }
 
         [HarmonyPatch]
@@ -51,6 +61,9 @@ namespace ItemRequiresSkillLevel
             [HarmonyPostfix]
             internal static void UpdateRecipe_Post(ref InventoryGui __instance, Player player)
             {
+                if (__instance is null) return;
+                if (__instance.m_selectedRecipe.Key is null) return;
+
                 string name = __instance.m_selectedRecipe.Key.m_item.gameObject.name;
                 SkillRequirement requirement = RequirementService.list.FirstOrDefault(x => name.GetStableHashCode() == x.StableHashCode);
                 if (requirement is null) return;
@@ -108,18 +121,21 @@ namespace ItemRequiresSkillLevel
                 if (requirement.Skill == "Level") level = EpicMMOSystem_API.GetLevel();
                 else level = EpicMMOSystem_API.GetAttribute((EpicMMOSystem_API.Attribut)Enum.Parse(typeof(EpicMMOSystem_API.Attribut), requirement.Skill));
 
-
-                if (level == 0) return true;
-
                 if (level < requirement.Level) return false;
+
+                return true;
             }
 
             if (ValheimLevelSystemList.Contains(requirement.Skill))
             {
-                int level = GetSkillLevelVLS(requirement.Skill);
-                if (level == 0) return true;
+                if (!Player.m_localPlayer.m_knownTexts.TryGetValue("player" + requirement.Skill, out string txt))
+                {
+                    return true;
+                }
 
-                if (level < requirement.Level) return false;
+                if (Convert.ToInt32(txt) < requirement.Level) return false;
+
+                return true;
             }
 
             var skill = Player.m_localPlayer.GetSkills().m_skillData.FirstOrDefault(x => x.Key == FromName(requirement.Skill));
@@ -152,7 +168,7 @@ namespace ItemRequiresSkillLevel
             {
                 string colorToUse = cantEquipColor;
                 if (IsAble(req)) colorToUse = canEquipColor;
-                str += String.Format(ItemRequiresSkillLevel.RequiresText.Value, colorToUse, req.Skill, req.Level);
+                str += String.Format(ItemRequiresSkillLevel.RequiresText.Value, colorToUse, req.ExhibitionName, req.Level);
             }
 
             return Localization.instance.Localize($"{str}");
@@ -171,7 +187,7 @@ namespace ItemRequiresSkillLevel
             {
                 string colorToUse = cantEquipColor;
                 if (IsAble(req)) colorToUse = canEquipColor;
-                str += String.Format(ItemRequiresSkillLevel.RequiresText.Value, colorToUse, req.Skill, req.Level);
+                str += String.Format(ItemRequiresSkillLevel.RequiresText.Value, colorToUse, req.ExhibitionName, req.Level);
             }
 
             return Localization.instance.Localize($"{str}");
