@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace ItemRequiresSkillLevel
 {
@@ -19,7 +18,7 @@ namespace ItemRequiresSkillLevel
             private static void GetToolTip(ItemDrop.ItemData __instance, ref string __result)
             {
                 if (__instance.m_dropPrefab is null) return;
-              
+
                 SkillRequirement requirement = RequirementService.list.FirstOrDefault(x => __instance.m_dropPrefab.name.GetStableHashCode() == x.StableHashCode);
                 if (requirement is null) return;
                 __result += GetTextEquip(requirement);
@@ -29,13 +28,38 @@ namespace ItemRequiresSkillLevel
             [HarmonyPostfix]
             private static void IsEquipable(ItemDrop.ItemData __instance, ref bool __result)
             {
-                if (__instance.m_dropPrefab is null) return;                
+                if (__instance.m_dropPrefab is null) return;
 
                 SkillRequirement requirement = RequirementService.list.FirstOrDefault(x => __instance.m_dropPrefab.name.GetStableHashCode() == x.StableHashCode);
                 if (requirement is null) return;
 
                 bool result = requirement.Requirements.Where(x => x.BlockEquip).ToList().Any(x => !IsAble(x)) ? false : true;
+
                 __result = result;
+            }
+        }
+
+
+        [HarmonyPatch]
+        class StartDrawPatch
+        {
+            [HarmonyPatch(typeof(Attack), nameof(Attack.StartDraw))]
+            [HarmonyPrefix]
+            internal static bool StartDraw(Humanoid character, ItemDrop.ItemData weapon)
+            {
+                if (!character.IsPlayer()) return true;
+                if (string.IsNullOrEmpty(weapon.m_shared.m_ammoType)) return true;
+
+                foreach (ItemDrop.ItemData item in character.GetInventory().m_inventory)
+                {
+                    if (!item.IsEquipable()) continue;
+                    if (!(item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo || item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Consumable)) continue;
+                    if (item.m_shared.m_ammoType != weapon.m_shared.m_ammoType) continue;
+                    character.m_ammoItem = item;
+                    return true;
+                }
+
+                return false;
             }
         }
 
@@ -48,7 +72,7 @@ namespace ItemRequiresSkillLevel
             {
                 if (!__instance.IsPlayer()) return true;
 
-                 if (item.IsEquipable()) return true;
+                if (item.IsEquipable()) return true;
 
                 return false;
             }
@@ -76,7 +100,7 @@ namespace ItemRequiresSkillLevel
                 {
                     __instance.m_craftButton.interactable = false;
                 }
-             }
+            }
         }
 
         [HarmonyPatch]
@@ -119,7 +143,7 @@ namespace ItemRequiresSkillLevel
                 int level = 0;
 
                 if (requirement.Skill == "Level") level = EpicMMOSystem_API.GetLevel();
-                else level = EpicMMOSystem_API.GetAttribute((EpicMMOSystem_API.Attribut)Enum.Parse(typeof(EpicMMOSystem_API.Attribut), requirement.Skill));
+                else level = EpicMMOSystem_API.GetAttribute(requirement.Skill);
 
                 if (level < requirement.Level) return false;
 
@@ -141,8 +165,15 @@ namespace ItemRequiresSkillLevel
             var skill = Player.m_localPlayer.GetSkills().m_skillData.FirstOrDefault(x => x.Key == FromName(requirement.Skill));
             if (skill.Value is null)
             {
-                Skills.SkillType type = (Skills.SkillType)Enum.Parse(typeof(Skills.SkillType), requirement.Skill);
-                skill = Player.m_localPlayer.GetSkills().m_skillData.FirstOrDefault(x => x.Key == type);
+
+                Skills.SkillType type;
+                if (Enum.TryParse(requirement.Skill, out type))
+                {
+                    skill = Player.m_localPlayer.GetSkills().m_skillData.FirstOrDefault(x => x.Key == type);
+                } else
+                {
+                     return false;
+                }
             }
             if (skill.Value is null) return true;
 
