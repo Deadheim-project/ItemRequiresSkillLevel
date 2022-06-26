@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace ItemRequiresSkillLevel
 {
@@ -49,6 +50,11 @@ namespace ItemRequiresSkillLevel
             {
                 if (!character.IsPlayer()) return true;
                 if (string.IsNullOrEmpty(weapon.m_shared.m_ammoType)) return true;
+
+                if (character.m_ammoItem is not null && character.m_ammoItem.IsEquipable() && character.GetInventory().GetItem(character.m_ammoItem.m_shared.m_name) is not null)
+                {
+                    return true;
+                }
 
                 foreach (ItemDrop.ItemData item in character.GetInventory().m_inventory)
                 {
