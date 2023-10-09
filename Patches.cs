@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using UnityEngine;
 
 namespace ItemRequiresSkillLevel
 {
@@ -39,7 +39,6 @@ namespace ItemRequiresSkillLevel
                 __result = result;
             }
         }
-
 
         [HarmonyPatch]
         class StartDrawPatch
@@ -171,7 +170,6 @@ namespace ItemRequiresSkillLevel
             var skill = Player.m_localPlayer.GetSkills().m_skillData.FirstOrDefault(x => x.Key == FromName(requirement.Skill));
             if (skill.Value is null)
             {
-
                 Skills.SkillType type;
                 if (Enum.TryParse(requirement.Skill, out type))
                 {
@@ -181,8 +179,15 @@ namespace ItemRequiresSkillLevel
                      return false;
                 }
             }
-            if (skill.Value is null) return true;
 
+            Skills.SkillType enumValue;
+
+            if (Enum.TryParse(requirement.Skill, out enumValue))
+            {
+                if (skill.Value is null) return false;
+            }
+
+            if (skill.Value is null) return true;
 
             if (skill.Value.m_level < requirement.Level) return false;
 
